@@ -499,11 +499,17 @@ input::placeholder {
 
 .memory-list li::before {
   position: absolute;
-  top: 0.05em;
-  left: 0;
-  color: var(--memory);
-  font-size: 0.8rem;
-  content: "★";
+  top: 0.62em;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  background: var(--memory);
+  content: "";
+}
+
+.spec-card strong {
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .spec-card > p.flag-value {

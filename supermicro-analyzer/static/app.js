@@ -14,6 +14,24 @@ const progressTrack = document.querySelector("#progress-track");
 const progressFill = document.querySelector("#progress-fill");
 let activeEvents = null;
 
+const cpuHighlight =
+  /\b\d{4}(?:\/\d{4})*[- ][Ss]eries\b|\b[A-Z]-?\d{4}[A-Z]?(?:\/[A-Z]-?\d{4}[A-Z]?)*\b/g;
+const memoryHighlight =
+  /\b\d+\s+DIMM(?:\s+[Ss]lots?)?|\b\d{4}\s?MT\/s(?:\s+ECC)?|\bECC\b/g;
+
+function setHighlightedText(element, text, pattern) {
+  element.replaceChildren();
+  let lastIndex = 0;
+  for (const match of text.matchAll(pattern)) {
+    element.append(text.slice(lastIndex, match.index));
+    const strong = document.createElement("strong");
+    strong.textContent = match[0];
+    element.append(strong);
+    lastIndex = match.index + match[0].length;
+  }
+  element.append(text.slice(lastIndex));
+}
+
 const fields = {
   category: document.querySelector("#category"),
   model: document.querySelector("#result-model"),
@@ -82,11 +100,11 @@ function showProduct(product) {
   fields.motherboardModel.textContent =
     product.motherboard_model ?? "官網未提供";
   fields.motherboardCard.classList.toggle("hidden", !isSystem);
-  fields.cpu.textContent = product.cpu;
+  setHighlightedText(fields.cpu, product.cpu, cpuHighlight);
   fields.memory.replaceChildren(
     ...product.memory.map((item) => {
       const listItem = document.createElement("li");
-      listItem.textContent = item;
+      setHighlightedText(listItem, item, memoryHighlight);
       return listItem;
     }),
   );
