@@ -85,6 +85,14 @@ def _segment(text: str, start: str, end: str) -> str | None:
     return _clean_markdown(match.group(1)) if match else None
 
 
+def _model_regex(model: str) -> str:
+    return re.escape(model).replace(r"\-", r"\s*-\s*")
+
+
+def _normalize_model(raw_model: str) -> str:
+    return re.sub(r"\s*-\s*", "-", raw_model.strip().upper())
+
+
 def _is_missing_page(text: str) -> bool:
     beginning = text[:700].lower()
     return (
@@ -97,15 +105,20 @@ def _is_missing_page(text: str) -> bool:
 
 def _parse_system(model: str, url: str, text: str) -> Product | None:
     if _is_missing_page(text) or not re.search(
-        rf"#\s+.*\b{re.escape(model)}\b", text, flags=re.IGNORECASE
+        rf"#\s+.*\b{_model_regex(model)}\b", text, flags=re.IGNORECASE
     ):
         return None
 
     normalized = re.sub(r"\s+", " ", text)
     name_match = re.search(
-        rf"#\s+(.+?\b{re.escape(model)}\b)", text, flags=re.IGNORECASE
+        rf"#\s+(.+?\b{_model_regex(model)}\b)", text, flags=re.IGNORECASE
     )
-    cpu = _segment(normalized, "Processor ", " System Memory ")
+    cpu_match = re.search(
+        r"Processor\s+(.*?)(?:\s+GPU\s+|\s+System Memory\s+)",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    cpu = _clean_markdown(cpu_match.group(1)) if cpu_match else None
     memory = _segment(normalized, "System Memory ", " Drive Bays Configuration ")
     motherboard_match = re.search(
         r"\bMotherboard\s+(?:Super\s+)?([A-Z0-9][A-Z0-9+.-]+)",
@@ -257,7 +270,7 @@ def _attach_firmware(product: Product) -> Product:
 
 
 def lookup_product(raw_model: str) -> Product:
-    model = raw_model.strip().upper()
+    model = _normalize_model(raw_model)
     if not MODEL_PATTERN.fullmatch(model):
         raise ProductNotFound
 

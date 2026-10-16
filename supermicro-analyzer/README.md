@@ -33,6 +33,7 @@ python3 server.py --host 0.0.0.0
 ## 資料來源
 
 程式只接受簡短的產品型號，並只組合 Supermicro 官方網址，避免輸入值被當成任意網址使用。
+Supermicro 部分型號會寫成 `AS -2116GT-DTNF`；程式會自動移除連字號旁的空格。
 
 Supermicro 的 CDN 會拒絕來自部分伺服器的直接請求，因此程式透過
 [Jina Reader](https://jina.ai/reader/) 將官方公開頁面轉成可讀文字。結果畫面上的

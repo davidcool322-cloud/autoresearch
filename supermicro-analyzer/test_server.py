@@ -4,12 +4,19 @@ from unittest.mock import patch
 from server import (
     _attach_firmware,
     _attach_motherboard_capabilities,
+    _normalize_model,
     _parse_motherboard,
     _parse_system,
 )
 
 
 class ProductParserTests(unittest.TestCase):
+    def test_normalizes_spaces_around_model_hyphens(self) -> None:
+        self.assertEqual(
+            _normalize_model(" AS -2116GT-DTNF "),
+            "AS-2116GT-DTNF",
+        )
+
     def test_parses_motherboard_fields(self) -> None:
         text = """
 Title: H14DSH | Motherboards | Products
@@ -71,6 +78,28 @@ Motherboard Super X13SCH-SYS
         self.assertTrue(any("128GB DDR5" in item for item in product.memory))
         self.assertTrue(product.bmc)
         self.assertFalse(product.rot)
+
+    def test_parses_official_model_with_spaced_hyphen(self) -> None:
+        text = """
+Title: AS -2116GT-DTNF | 2U | SuperServer
+# GrandTwin SuperServer AS -2116GT-DTNF
+Processor Single processor AMD EPYC 9005 Up to 192C
+GPU Up to 2 GPUs
+System Memory Slot Count: 12 DIMM slots Max Memory: Up to 3TB DDR5
+Drive Bays Configuration 4 bays
+Motherboard Super H14SST-GE
+"""
+        product = _parse_system(
+            "AS-2116GT-DTNF",
+            "https://www.supermicro.com/en/products/system/datasheet/as-2116gt-dtnf",
+            text,
+        )
+
+        self.assertIsNotNone(product)
+        assert product is not None
+        self.assertEqual(product.model, "AS-2116GT-DTNF")
+        self.assertEqual(product.motherboard_model, "H14SST-GE")
+        self.assertNotIn("GPU", product.cpu)
 
     @patch("server._fetch_official_page")
     def test_attaches_latest_firmware_versions(self, fetch_page) -> None:
