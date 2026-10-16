@@ -9,6 +9,12 @@
   --accent-dark: #0058d3;
   --success: #117a4d;
   --danger: #b42318;
+  --cpu: #7047c8;
+  --memory: #087f72;
+  --motherboard: #a86500;
+  --bmc: #16784a;
+  --rot: #1769aa;
+  --firmware: #b54708;
   --radius: 18px;
 }
 
@@ -38,8 +44,21 @@ input {
 }
 
 .hero {
+  position: relative;
   max-width: 760px;
+  padding-left: 24px;
   margin-bottom: 44px;
+}
+
+.hero::before {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
 }
 
 .eyebrow,
@@ -162,7 +181,8 @@ input::placeholder {
   transition:
     background 140ms ease,
     border-color 140ms ease,
-    color 140ms ease;
+    color 140ms ease,
+    transform 140ms ease;
 }
 
 .button.primary {
@@ -173,19 +193,39 @@ input::placeholder {
 
 .button.primary:hover {
   background: var(--accent-dark);
+  transform: translateY(-1px);
 }
 
-.button.secondary,
-.button.link-button {
+.button.primary::after {
+  margin-left: 9px;
+  content: "→";
+}
+
+.button.secondary {
   color: var(--ink);
   border-color: var(--line);
   background: var(--surface);
 }
 
-.button.secondary:hover,
-.button.link-button:not(.disabled):hover {
+.button.secondary:hover {
   border-color: #aab3bd;
   background: #f8f9fa;
+}
+
+.button.link-button {
+  color: var(--accent-dark);
+  border-color: #b8d4fa;
+  background: #edf5ff;
+}
+
+.button.link-button::after {
+  margin-left: 8px;
+  content: "↗";
+}
+
+.button.link-button:not(.disabled):hover {
+  border-color: #7fb2f3;
+  background: #e2efff;
 }
 
 .button:focus-visible,
@@ -307,11 +347,15 @@ input::placeholder {
 }
 
 .spec-card {
+  --card-accent: var(--line);
+  --card-tint: #fafbfc;
+
   min-width: 0;
   padding: 24px;
   border: 1px solid var(--line);
+  border-top: 3px solid var(--card-accent);
   border-radius: 14px;
-  background: #fafbfc;
+  background: var(--card-tint);
 }
 
 .spec-card.wide {
@@ -323,11 +367,41 @@ input::placeholder {
 }
 
 .spec-card.motherboard {
+  --card-accent: var(--motherboard);
+  --card-tint: #fff9ed;
+
   grid-column: 1 / -1;
 }
 
 .spec-card.firmware {
+  --card-accent: var(--firmware);
+  --card-tint: #fff7ed;
+
   grid-column: span 2;
+}
+
+.spec-card.cpu-card {
+  --card-accent: var(--cpu);
+  --card-tint: #f8f5ff;
+}
+
+.spec-card.memory-card {
+  --card-accent: var(--memory);
+  --card-tint: #f1faf8;
+}
+
+.spec-card.bmc-card {
+  --card-accent: var(--bmc);
+  --card-tint: #f1faf5;
+}
+
+.spec-card.rot-card {
+  --card-accent: var(--rot);
+  --card-tint: #f1f7fc;
+}
+
+.spec-card .spec-number {
+  color: var(--card-accent);
 }
 
 .spec-card h4 {
@@ -364,7 +438,7 @@ input::placeholder {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--memory);
   content: "";
 }
 
@@ -373,6 +447,10 @@ input::placeholder {
   font-size: 2.2rem;
   font-weight: 850;
   line-height: 1;
+}
+
+.spec-card.rot-card .flag-value {
+  color: var(--rot);
 }
 
 .spec-card .motherboard-value {
@@ -410,6 +488,7 @@ input::placeholder {
 
 .firmware-list dd {
   margin: 0;
+  color: var(--firmware);
   font-size: 1.05rem;
   font-weight: 850;
   overflow-wrap: anywhere;
