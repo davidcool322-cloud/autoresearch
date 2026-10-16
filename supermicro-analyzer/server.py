@@ -7,6 +7,7 @@ import argparse
 import json
 import mimetypes
 import re
+import webbrowser
 from dataclasses import asdict, dataclass, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -421,10 +422,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Supermicro model analyzer.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--no-browser", action="store_true", help="啟動後不自動開啟瀏覽器")
     args = parser.parse_args()
 
-    server = ThreadingHTTPServer((args.host, args.port), AppHandler)
-    print(f"Open http://{args.host}:{args.port}")
+    try:
+        server = ThreadingHTTPServer((args.host, args.port), AppHandler)
+    except OSError as error:
+        print(f"無法啟動：連接埠 {args.port} 可能已被其他程式使用（{error}）。")
+        print(f"可改用其他連接埠，例如：python3 server.py --port {args.port + 1}")
+        raise SystemExit(1) from error
+
+    browser_host = "127.0.0.1" if args.host in {"0.0.0.0", "127.0.0.1", "localhost"} else args.host
+    url = f"http://{browser_host}:{args.port}"
+    print(f"已啟動，請用瀏覽器開啟 {url}", flush=True)
+    print("使用期間請保持這個視窗開啟；按 Ctrl+C 結束。", flush=True)
+    if not args.no_browser:
+        webbrowser.open(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
