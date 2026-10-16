@@ -5,6 +5,12 @@ const clearButton = document.querySelector("#clear-button");
 const sourceButton = document.querySelector("#source-button");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result");
+const progressPanel = document.querySelector("#progress");
+const progressMessage = document.querySelector("#progress-message");
+const progressPercent = document.querySelector("#progress-percent");
+const progressTrack = document.querySelector("#progress-track");
+const progressFill = document.querySelector("#progress-fill");
+let activeEvents = null;
 
 const fields = {
   category: document.querySelector("#category"),
@@ -34,6 +40,8 @@ function setSource(url = "") {
 
 function resetResult() {
   result.classList.add("hidden");
+  progressPanel.classList.add("hidden");
+  updateProgress(0, "準備查詢");
   status.textContent = "";
   status.classList.remove("error");
   setSource();
@@ -41,9 +49,25 @@ function resetResult() {
 
 function showError(message) {
   result.classList.add("hidden");
+  progressPanel.classList.add("hidden");
   status.textContent = message;
   status.classList.add("error");
   setSource();
+}
+
+function updateProgress(percent, message) {
+  const safePercent = Math.max(0, Math.min(100, Number(percent)));
+  progressFill.style.width = `${safePercent}%`;
+  progressPercent.textContent = `${safePercent}%`;
+  progressMessage.textContent = message;
+  progressTrack.setAttribute("aria-valuenow", String(safePercent));
+}
+
+function finishRequest() {
+  activeEvents?.close();
+  activeEvents = null;
+  startButton.disabled = false;
+  startButton.textContent = "開始";
 }
 
 function showProduct(product) {
@@ -84,27 +108,40 @@ form.addEventListener("submit", async (event) => {
   startButton.disabled = true;
   startButton.textContent = "查詢中";
   resetResult();
-  status.textContent = "正在確認 Supermicro 官網資料…";
+  progressPanel.classList.remove("hidden");
+  updateProgress(0, "準備查詢");
 
-  try {
-    const response = await fetch(
-      `/api/products?model=${encodeURIComponent(model)}`,
-      { headers: { Accept: "application/json" } },
-    );
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error);
-    }
-    showProduct(payload);
-  } catch {
+  activeEvents?.close();
+  activeEvents = new EventSource(
+    `/api/products/progress?model=${encodeURIComponent(model)}`,
+  );
+
+  activeEvents.addEventListener("progress", (progressEvent) => {
+    const payload = JSON.parse(progressEvent.data);
+    updateProgress(payload.percent, payload.message);
+  });
+
+  activeEvents.addEventListener("result", (resultEvent) => {
+    showProduct(JSON.parse(resultEvent.data));
+    finishRequest();
+  });
+
+  activeEvents.addEventListener("lookup-error", () => {
     showError("再次確認型號");
-  } finally {
-    startButton.disabled = false;
-    startButton.textContent = "開始";
-  }
+    finishRequest();
+  });
+
+  activeEvents.onerror = () => {
+    if (!activeEvents) {
+      return;
+    }
+    showError("再次確認型號");
+    finishRequest();
+  };
 });
 
 clearButton.addEventListener("click", () => {
+  finishRequest();
   modelInput.value = "";
   resetResult();
   modelInput.focus();

@@ -64,6 +64,27 @@
         </form>
       </section>
 
+      <section
+        id="progress"
+        class="progress-panel hidden"
+        aria-label="查詢進度"
+      >
+        <div class="progress-copy">
+          <p id="progress-message">準備查詢</p>
+          <strong id="progress-percent">0%</strong>
+        </div>
+        <div
+          id="progress-track"
+          class="progress-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </section>
+
       <p id="status" class="status" role="status" aria-live="polite"></p>
 
       <section id="result" class="result hidden" aria-labelledby="result-title">

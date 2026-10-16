@@ -10,6 +10,7 @@ import re
 from dataclasses import asdict, dataclass, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
@@ -20,6 +21,7 @@ STATIC_DIR = APP_DIR / "static"
 OFFICIAL_BASE = "https://www.supermicro.com"
 READER_BASE = "https://r.jina.ai/"
 MODEL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9+.-]{1,39}$")
+ProgressCallback = Callable[[int, str], None]
 DC_SCM_SOURCE = (
     "https://www.supermicro.com/en/support/manuals/product/system/"
     "sys-222c-tn/Content/introduction/dc-scm-222c-tn.htm"
@@ -205,10 +207,23 @@ def _parse_motherboard(model: str, url: str, text: str) -> Product | None:
     )
 
 
-def _attach_motherboard_capabilities(product: Product) -> Product:
+def _report(
+    progress: ProgressCallback | None,
+    percent: int,
+    message: str,
+) -> None:
+    if progress:
+        progress(percent, message)
+
+
+def _attach_motherboard_capabilities(
+    product: Product,
+    progress: ProgressCallback | None = None,
+) -> Product:
     if product.category != "系統" or not product.motherboard_model:
         return product
 
+    _report(progress, 55, "確認搭配主機板")
     motherboard_url = (
         f"{OFFICIAL_BASE}/en/products/motherboard/{product.motherboard_model}"
     )
@@ -224,6 +239,7 @@ def _attach_motherboard_capabilities(product: Product) -> Product:
     if not motherboard:
         return product
 
+    _report(progress, 70, "確認 BMC 與 RoT")
     return replace(
         product,
         bmc=product.bmc or motherboard.bmc,
@@ -232,13 +248,17 @@ def _attach_motherboard_capabilities(product: Product) -> Product:
     )
 
 
-def _attach_firmware(product: Product) -> Product:
+def _attach_firmware(
+    product: Product,
+    progress: ProgressCallback | None = None,
+) -> Product:
     firmware_model = product.motherboard_model or (
         product.model if product.category == "主機板" else None
     )
     if not firmware_model:
         return product
 
+    _report(progress, 82, "確認最新韌體版本")
     firmware_url = (
         f"{OFFICIAL_BASE}/en/support/resources/downloadcenter/"
         f"firmware/MBD-{firmware_model}/BIOS"
@@ -261,6 +281,7 @@ def _attach_firmware(product: Product) -> Product:
     if not bios_match and not bmc_match:
         return product
 
+    _report(progress, 92, "整理產品資料")
     return replace(
         product,
         bios_version=bios_match.group(1).strip() if bios_match else None,
@@ -269,7 +290,11 @@ def _attach_firmware(product: Product) -> Product:
     )
 
 
-def lookup_product(raw_model: str) -> Product:
+def lookup_product(
+    raw_model: str,
+    progress: ProgressCallback | None = None,
+) -> Product:
+    _report(progress, 5, "驗證型號")
     model = _normalize_model(raw_model)
     if not MODEL_PATTERN.fullmatch(model):
         raise ProductNotFound
@@ -285,7 +310,12 @@ def lookup_product(raw_model: str) -> Product:
         ),
     )
     source_failed = False
-    for url, parser in candidates:
+    for index, (url, parser) in enumerate(candidates):
+        _report(
+            progress,
+            15 if index == 0 else 45,
+            "確認系統產品頁" if index == 0 else "確認主機板產品頁",
+        )
         try:
             text = _fetch_official_page(url)
         except SourceUnavailable:
@@ -293,8 +323,13 @@ def lookup_product(raw_model: str) -> Product:
             continue
         product = parser(model, url, text)
         if product:
-            product = _attach_motherboard_capabilities(product)
-            return _attach_firmware(product)
+            _report(
+                progress,
+                40 if index == 0 else 65,
+                "取得系統規格" if index == 0 else "取得主機板規格",
+            )
+            product = _attach_motherboard_capabilities(product, progress)
+            return _attach_firmware(product, progress)
 
     if source_failed:
         raise SourceUnavailable
@@ -306,6 +341,9 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/products/progress":
+            self._serve_progress(parse_qs(parsed.query).get("model", [""])[0])
+            return
         if parsed.path == "/api/products":
             self._serve_api(parse_qs(parsed.query).get("model", [""])[0])
             return
@@ -318,6 +356,36 @@ class AppHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "再次確認型號"})
             return
         self._send_json(200, asdict(product))
+
+    def _serve_progress(self, model: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        def send_event(event: str, payload: dict[str, object]) -> None:
+            content = (
+                f"event: {event}\n"
+                f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            ).encode("utf-8")
+            self.wfile.write(content)
+            self.wfile.flush()
+
+        try:
+            product = lookup_product(
+                model,
+                progress=lambda percent, message: send_event(
+                    "progress",
+                    {"percent": percent, "message": message},
+                ),
+            )
+            send_event("progress", {"percent": 100, "message": "查詢完成"})
+            send_event("result", asdict(product))
+        except (ProductNotFound, SourceUnavailable):
+            send_event("lookup-error", {"error": "再次確認型號"})
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
     def _serve_static(self, request_path: str) -> None:
         relative = "index.html" if request_path == "/" else request_path.lstrip("/")
