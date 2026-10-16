@@ -276,7 +276,7 @@ class AppHandler(BaseHTTPRequestHandler):
         try:
             product = lookup_product(model)
         except (ProductNotFound, SourceUnavailable):
-            self._send_json(404, {"error": "找不到該產品 請再確認"})
+            self._send_json(404, {"error": "再次確認型號"})
             return
         self._send_json(200, asdict(product))
 

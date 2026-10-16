@@ -71,7 +71,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const model = modelInput.value.trim();
   if (!model) {
-    showError("找不到該產品 請再確認");
+    showError("再次確認型號");
     return;
   }
 
@@ -91,7 +91,7 @@ form.addEventListener("submit", async (event) => {
     }
     showProduct(payload);
   } catch {
-    showError("找不到該產品 請再確認");
+    showError("再次確認型號");
   } finally {
     startButton.disabled = false;
     startButton.textContent = "開始";
