@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="輸入 Supermicro 系統或主機板型號，查看官方產品規格摘要。"
+    >
+    <title>Supermicro 型號分析</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="control-column">
+      <header class="hero">
+        <p class="eyebrow">PRODUCT INTELLIGENCE</p>
+        <h1>Supermicro <span class="nowrap">型號分析</span></h1>
+        <p class="intro">
+          輸入系統型號或主機板型號，工具會到 Supermicro 官網確認產品規格。
+        </p>
+      </header>
+
+      <section class="search-panel" aria-labelledby="search-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">01</p>
+            <h2 id="search-title">輸入產品型號</h2>
+          </div>
+          <p>目前支援系統與主機板</p>
+        </div>
+
+        <form id="lookup-form" novalidate>
+          <label for="model">型號</label>
+          <div class="search-row">
+            <input
+              id="model"
+              name="model"
+              type="text"
+              placeholder="例如 H14DSH"
+              maxlength="40"
+              autocomplete="off"
+              spellcheck="false"
+              autofocus
+            >
+            <button id="start-button" class="button primary" type="submit">
+              開始
+            </button>
+          </div>
+          <div class="button-row">
+            <button id="clear-button" class="button secondary" type="button">
+              清除
+            </button>
+            <a
+              id="source-button"
+              class="button link-button disabled"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-disabled="true"
+            >
+              看官網
+            </a>
+          </div>
+        </form>
+      </section>
+
+      <section
+        id="progress"
+        class="progress-panel hidden"
+        aria-label="查詢進度"
+      >
+        <div class="progress-copy">
+          <p id="progress-message">準備查詢</p>
+          <strong id="progress-percent">0%</strong>
+        </div>
+        <div
+          id="progress-track"
+          class="progress-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </section>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      </aside>
+
+      <div class="result-column">
+      <section id="empty-state" class="empty-state" aria-label="尚未查詢">
+        <p class="step">02</p>
+        <h2>分析結果會顯示在這裡</h2>
+        <p>輸入型號後按「開始」，會依序列出 CPU、MEM、主機板、BMC、RoT 與最新韌體版本。</p>
+        <ol class="empty-preview" aria-hidden="true">
+          <li class="cpu-dot">CPU</li>
+          <li class="memory-dot">MEM</li>
+          <li class="motherboard-dot">主機板</li>
+          <li class="bmc-dot">BMC</li>
+          <li class="rot-dot">RoT</li>
+          <li class="firmware-dot">韌體</li>
+        </ol>
+      </section>
+
+      <section id="result" class="result hidden" aria-labelledby="result-title">
+        <div class="section-heading result-heading">
+          <div>
+            <p class="step">02</p>
+            <h2 id="result-title">分析結果</h2>
+          </div>
+          <span id="category" class="category"></span>
+        </div>
+
+        <div class="product-title">
+          <p id="result-model" class="model"></p>
+          <h3 id="product-name"></h3>
+        </div>
+
+        <div class="spec-grid">
+          <article class="spec-card wide cpu-card">
+            <p class="spec-number">01</p>
+            <h4>支援的 CPU</h4>
+            <p id="cpu"></p>
+          </article>
+          <article class="spec-card wide memory-card">
+            <p class="spec-number">02</p>
+            <h4>支援的 MEM</h4>
+            <ul id="memory" class="memory-list"></ul>
+          </article>
+          <article id="motherboard-card" class="spec-card motherboard hidden">
+            <p class="spec-number">03</p>
+            <h4>搭配主機板</h4>
+            <p id="motherboard-model" class="motherboard-value"></p>
+          </article>
+          <article class="spec-card flag bmc-card">
+            <p class="spec-number">04</p>
+            <h4>BMC</h4>
+            <p id="bmc" class="flag-value"></p>
+          </article>
+          <article class="spec-card flag rot-card">
+            <p class="spec-number">05</p>
+            <h4>RoT</h4>
+            <p id="rot" class="flag-value"></p>
+          </article>
+          <article class="spec-card firmware">
+            <p class="spec-number">06</p>
+            <h4>目前最新韌體版本</h4>
+            <dl class="firmware-list">
+              <div>
+                <dt>BIOS</dt>
+                <dd id="bios-version"></dd>
+              </div>
+              <div>
+                <dt>BMC</dt>
+                <dd id="bmc-version"></dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+      </div>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
