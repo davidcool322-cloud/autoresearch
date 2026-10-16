@@ -1,0 +1,41 @@
+# Supermicro 型號分析
+
+輸入 Supermicro 系統或主機板型號，從官方產品頁整理：
+
+- 產品類別
+- 支援的 CPU
+- 支援的記憶體
+- 是否有 BMC
+- 是否有 RoT
+
+## 啟動
+
+需要 Python 3.10 以上版本，不需要安裝額外套件。
+
+```bash
+cd supermicro-analyzer
+python3 server.py
+```
+
+接著用瀏覽器開啟 <http://127.0.0.1:8000>。
+
+如需讓同一個內部網路上的其他電腦使用：
+
+```bash
+python3 server.py --host 0.0.0.0
+```
+
+## 資料來源
+
+程式只接受簡短的產品型號，並只組合 Supermicro 官方網址，避免輸入值被當成任意網址使用。
+
+Supermicro 的 CDN 會拒絕來自部分伺服器的直接請求，因此程式透過
+[Jina Reader](https://jina.ai/reader/) 將官方公開頁面轉成可讀文字。結果畫面上的
+「看官網」仍會開啟實際使用的 Supermicro 官方產品頁。
+
+目前支援：
+
+- 系統規格表：`/en/products/system/datasheet/<型號>`
+- 主機板頁：`/en/products/motherboard/<型號>`
+
+其他產品種類（MEM、AOC、AOM、PWS、CBL）尚未支援。
