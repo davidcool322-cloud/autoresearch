@@ -5,6 +5,8 @@ const clearButton = document.querySelector("#clear-button");
 const sourceButton = document.querySelector("#source-button");
 const status = document.querySelector("#status");
 const result = document.querySelector("#result");
+const emptyState = document.querySelector("#empty-state");
+const sideBySide = window.matchMedia("(min-width: 1000px)");
 const progressPanel = document.querySelector("#progress");
 const progressMessage = document.querySelector("#progress-message");
 const progressPercent = document.querySelector("#progress-percent");
@@ -40,6 +42,7 @@ function setSource(url = "") {
 
 function resetResult() {
   result.classList.add("hidden");
+  emptyState.classList.remove("hidden");
   progressPanel.classList.add("hidden");
   updateProgress(0, "準備查詢");
   status.textContent = "";
@@ -49,6 +52,7 @@ function resetResult() {
 
 function showError(message) {
   result.classList.add("hidden");
+  emptyState.classList.remove("hidden");
   progressPanel.classList.add("hidden");
   status.textContent = message;
   status.classList.add("error");
@@ -93,8 +97,11 @@ function showProduct(product) {
   status.textContent = "";
   status.classList.remove("error");
   setSource(product.sources[0]);
+  emptyState.classList.add("hidden");
   result.classList.remove("hidden");
-  result.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!sideBySide.matches) {
+    result.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 form.addEventListener("submit", async (event) => {

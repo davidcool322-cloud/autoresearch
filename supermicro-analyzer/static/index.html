@@ -12,6 +12,7 @@
   </head>
   <body>
     <main class="shell">
+      <aside class="control-column">
       <header class="hero">
         <p class="eyebrow">PRODUCT INTELLIGENCE</p>
         <h1>Supermicro 型號分析</h1>
@@ -86,6 +87,22 @@
       </section>
 
       <p id="status" class="status" role="status" aria-live="polite"></p>
+      </aside>
+
+      <div class="result-column">
+      <section id="empty-state" class="empty-state" aria-label="尚未查詢">
+        <p class="step">02</p>
+        <h2>分析結果會顯示在這裡</h2>
+        <p>輸入型號後按「開始」，會依序列出 CPU、MEM、主機板、BMC、RoT 與最新韌體版本。</p>
+        <ol class="empty-preview" aria-hidden="true">
+          <li class="cpu-dot">CPU</li>
+          <li class="memory-dot">MEM</li>
+          <li class="motherboard-dot">主機板</li>
+          <li class="bmc-dot">BMC</li>
+          <li class="rot-dot">RoT</li>
+          <li class="firmware-dot">韌體</li>
+        </ol>
+      </section>
 
       <section id="result" class="result hidden" aria-labelledby="result-title">
         <div class="section-heading result-heading">
@@ -143,6 +160,7 @@
           </article>
         </div>
       </section>
+      </div>
     </main>
 
     <script src="/app.js" defer></script>

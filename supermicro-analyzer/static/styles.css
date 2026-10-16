@@ -12,7 +12,7 @@
   --cpu: #7047c8;
   --memory: #087f72;
   --motherboard: #a86500;
-  --bmc: #16784a;
+  --bmc: #c11574;
   --rot: #1769aa;
   --firmware: #b54708;
   --radius: 18px;
@@ -392,7 +392,7 @@ input::placeholder {
 
 .spec-card.bmc-card {
   --card-accent: var(--bmc);
-  --card-tint: #f1faf5;
+  --card-tint: #fdf2f8;
 }
 
 .spec-card.rot-card {
@@ -449,6 +449,10 @@ input::placeholder {
   line-height: 1;
 }
 
+.spec-card.bmc-card .flag-value {
+  color: var(--bmc);
+}
+
 .spec-card.rot-card .flag-value {
   color: var(--rot);
 }
@@ -494,8 +498,152 @@ input::placeholder {
   overflow-wrap: anywhere;
 }
 
+.empty-state {
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px dashed #c3cad3;
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 60%);
+}
+
+.empty-state h2 {
+  margin-bottom: 12px;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  letter-spacing: -0.035em;
+}
+
+.empty-state > p:not(.step) {
+  max-width: 560px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.empty-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.empty-preview li {
+  --dot: var(--line);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #3e4752;
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.empty-preview li::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot);
+  content: "";
+}
+
+.empty-preview .cpu-dot {
+  --dot: var(--cpu);
+}
+
+.empty-preview .memory-dot {
+  --dot: var(--memory);
+}
+
+.empty-preview .motherboard-dot {
+  --dot: var(--motherboard);
+}
+
+.empty-preview .bmc-dot {
+  --dot: var(--bmc);
+}
+
+.empty-preview .rot-dot {
+  --dot: var(--rot);
+}
+
+.empty-preview .firmware-dot {
+  --dot: var(--firmware);
+}
+
 .hidden {
   display: none;
+}
+
+@media (max-width: 999px) {
+  .empty-state {
+    display: none;
+  }
+}
+
+@media (min-width: 1000px) {
+  .shell {
+    display: grid;
+    width: min(1280px, calc(100% - 48px));
+    grid-template-columns: minmax(340px, 380px) minmax(0, 1fr);
+    align-items: start;
+    gap: 28px;
+    padding: 48px 0 72px;
+  }
+
+  .hero {
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    font-size: 3rem;
+  }
+
+  .intro {
+    font-size: 1rem;
+  }
+
+  .search-panel {
+    padding: 28px;
+  }
+
+  .search-panel .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+
+  .search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .button.primary {
+    width: 100%;
+  }
+
+  .button-row .button {
+    flex: 1;
+  }
+
+  .result,
+  .empty-state {
+    padding: 36px;
+  }
+
+  .product-title {
+    margin: 30px 0 24px;
+  }
+}
+
+/* Sticky only when the whole left column fits; otherwise its lower part becomes unreachable. */
+@media (min-width: 1000px) and (min-height: 760px) {
+  .control-column {
+    position: sticky;
+    top: 24px;
+  }
 }
 
 @media (max-width: 700px) {
