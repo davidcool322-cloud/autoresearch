@@ -1,7 +1,12 @@
 import unittest
 from unittest.mock import patch
 
-from server import _attach_firmware, _parse_motherboard, _parse_system
+from server import (
+    _attach_firmware,
+    _attach_motherboard_capabilities,
+    _parse_motherboard,
+    _parse_system,
+)
 
 
 class ProductParserTests(unittest.TestCase):
@@ -50,6 +55,7 @@ Processor Single V0 Intel Xeon E-2400 processors Up to 12C/24T
 System Memory Slot Count: 4 DIMM slots Max Memory: Up to 128GB DDR5
 Drive Bays Configuration Default: Total 4 bays
 Input / Output LAN: 1 Dedicated BMC LAN port
+Motherboard Super X13SCH-SYS
 """
         product = _parse_system(
             "SYS-511R-M",
@@ -60,6 +66,7 @@ Input / Output LAN: 1 Dedicated BMC LAN port
         self.assertIsNotNone(product)
         assert product is not None
         self.assertEqual(product.category, "系統")
+        self.assertEqual(product.motherboard_model, "X13SCH-SYS")
         self.assertIn("Xeon E-2400", product.cpu)
         self.assertTrue(any("128GB DDR5" in item for item in product.memory))
         self.assertTrue(product.bmc)
@@ -88,11 +95,47 @@ BIOS Revision:2.4
 BMC Firmware Revision:01.05.05
 """
 
-        updated = _attach_firmware(product, product_text, is_motherboard=False)
+        updated = _attach_firmware(product)
 
         self.assertEqual(updated.bios_version, "2.4")
         self.assertEqual(updated.bmc_version, "01.05.05")
         self.assertIn("MBD-X13SCH-SYS", updated.sources[-1])
+
+    @patch("server._fetch_official_page")
+    def test_system_uses_motherboard_rot_capability(self, fetch_page) -> None:
+        system_text = """
+# UP SuperServer SYS-TEST
+Processor Single Socket processor
+System Memory Slot Count: 4 DIMM slots
+Drive Bays Configuration 4 bays
+Motherboard Super TEST-BOARD
+"""
+        product = _parse_system(
+            "SYS-TEST",
+            "https://www.supermicro.com/en/products/system/datasheet/sys-test",
+            system_text,
+        )
+        self.assertIsNotNone(product)
+        assert product is not None
+        fetch_page.return_value = """
+# TEST-BOARD **( For SuperServer Only )**
+[![Image](https://example.test/image.png)](https://example.test/image.png)
+Test DP Server Board
+### Key Features
+Product SKUs **MBD-TEST-BOARD**
+Processor CPU* Dual Socket E2 * Test processors
+Core Count* Up to 128C
+System Memory Memory* Slot Count: 16 DIMM Slots
+Memory Voltage* 1.1V
+IPMI* ASPEED BMC
+Other Features* RoT
+"""
+
+        updated = _attach_motherboard_capabilities(product)
+
+        self.assertTrue(updated.bmc)
+        self.assertTrue(updated.rot)
+        self.assertIn("/motherboard/TEST-BOARD", updated.sources[-1])
 
     def test_rejects_not_found_page(self) -> None:
         text = """

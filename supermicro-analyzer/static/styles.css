@@ -275,6 +275,10 @@ input::placeholder {
   grid-column: span 2;
 }
 
+.spec-card.motherboard {
+  grid-column: 1 / -1;
+}
+
 .spec-card.firmware {
   grid-column: span 2;
 }
@@ -322,6 +326,13 @@ input::placeholder {
   font-size: 2.2rem;
   font-weight: 850;
   line-height: 1;
+}
+
+.spec-card .motherboard-value {
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
 }
 
 .firmware-list {

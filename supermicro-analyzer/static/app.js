@@ -10,6 +10,8 @@ const fields = {
   category: document.querySelector("#category"),
   model: document.querySelector("#result-model"),
   name: document.querySelector("#product-name"),
+  motherboardCard: document.querySelector("#motherboard-card"),
+  motherboardModel: document.querySelector("#motherboard-model"),
   cpu: document.querySelector("#cpu"),
   memory: document.querySelector("#memory"),
   bmc: document.querySelector("#bmc"),
@@ -48,6 +50,10 @@ function showProduct(product) {
   fields.category.textContent = product.category;
   fields.model.textContent = product.model;
   fields.name.textContent = product.name;
+  const isSystem = product.category === "系統";
+  fields.motherboardModel.textContent =
+    product.motherboard_model ?? "官網未提供";
+  fields.motherboardCard.classList.toggle("hidden", !isSystem);
   fields.cpu.textContent = product.cpu;
   fields.memory.replaceChildren(
     ...product.memory.map((item) => {

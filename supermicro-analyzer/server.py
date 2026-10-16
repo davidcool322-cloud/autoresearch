@@ -39,6 +39,7 @@ class Product:
     model: str
     category: str
     name: str
+    motherboard_model: str | None
     cpu: str
     memory: list[str]
     bmc: bool
@@ -106,6 +107,11 @@ def _parse_system(model: str, url: str, text: str) -> Product | None:
     )
     cpu = _segment(normalized, "Processor ", " System Memory ")
     memory = _segment(normalized, "System Memory ", " Drive Bays Configuration ")
+    motherboard_match = re.search(
+        r"\bMotherboard\s+(?:Super\s+)?([A-Z0-9][A-Z0-9+.-]+)",
+        normalized,
+        flags=re.IGNORECASE,
+    )
     if not name_match or not cpu or not memory:
         return None
 
@@ -113,6 +119,9 @@ def _parse_system(model: str, url: str, text: str) -> Product | None:
         model=model,
         category="系統",
         name=_clean_markdown(name_match.group(1)),
+        motherboard_model=(
+            motherboard_match.group(1).upper() if motherboard_match else None
+        ),
         cpu=cpu,
         memory=_spec_items(memory),
         bmc=bool(re.search(r"\b(?:BMC|IPMI)\b", text, flags=re.IGNORECASE)),
@@ -172,6 +181,7 @@ def _parse_motherboard(model: str, url: str, text: str) -> Product | None:
         model=model,
         category="主機板",
         name=_clean_markdown(title_lines[0]),
+        motherboard_model=None,
         cpu=cpu,
         memory=_spec_items(memory),
         bmc=bmc,
@@ -182,18 +192,37 @@ def _parse_motherboard(model: str, url: str, text: str) -> Product | None:
     )
 
 
-def _attach_firmware(
-    product: Product, product_text: str, is_motherboard: bool
-) -> Product:
-    firmware_model = product.model if is_motherboard else None
-    if not firmware_model:
-        normalized = re.sub(r"\s+", " ", product_text)
-        match = re.search(
-            r"\bMotherboard\s+(?:Super\s+)?([A-Z0-9][A-Z0-9+.-]+)",
-            normalized,
-            flags=re.IGNORECASE,
-        )
-        firmware_model = match.group(1).upper() if match else None
+def _attach_motherboard_capabilities(product: Product) -> Product:
+    if product.category != "系統" or not product.motherboard_model:
+        return product
+
+    motherboard_url = (
+        f"{OFFICIAL_BASE}/en/products/motherboard/{product.motherboard_model}"
+    )
+    try:
+        motherboard_text = _fetch_official_page(motherboard_url)
+    except SourceUnavailable:
+        return product
+    motherboard = _parse_motherboard(
+        product.motherboard_model,
+        motherboard_url,
+        motherboard_text,
+    )
+    if not motherboard:
+        return product
+
+    return replace(
+        product,
+        bmc=product.bmc or motherboard.bmc,
+        rot=motherboard.rot,
+        sources=[*product.sources, *motherboard.sources],
+    )
+
+
+def _attach_firmware(product: Product) -> Product:
+    firmware_model = product.motherboard_model or (
+        product.model if product.category == "主機板" else None
+    )
     if not firmware_model:
         return product
 
@@ -251,11 +280,8 @@ def lookup_product(raw_model: str) -> Product:
             continue
         product = parser(model, url, text)
         if product:
-            return _attach_firmware(
-                product,
-                text,
-                is_motherboard=parser is _parse_motherboard,
-            )
+            product = _attach_motherboard_capabilities(product)
+            return _attach_firmware(product)
 
     if source_failed:
         raise SourceUnavailable
