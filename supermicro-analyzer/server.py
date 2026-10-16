@@ -7,7 +7,7 @@ import argparse
 import json
 import mimetypes
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -40,9 +40,11 @@ class Product:
     category: str
     name: str
     cpu: str
-    memory: str
+    memory: list[str]
     bmc: bool
     rot: bool
+    bios_version: str | None
+    bmc_version: str | None
     sources: list[str]
 
 
@@ -65,7 +67,12 @@ def _clean_markdown(value: str) -> str:
     value = value.replace("**", "").replace("™", "™").replace("®", "®")
     value = re.sub(r"\s*\*\s*", "；", value)
     value = re.sub(r"\s+", " ", value)
+    value = re.sub(r"；{2,}", "；", value)
     return value.strip(" ；")
+
+
+def _spec_items(value: str) -> list[str]:
+    return [item.strip() for item in value.split("；") if item.strip()]
 
 
 def _segment(text: str, start: str, end: str) -> str | None:
@@ -107,9 +114,11 @@ def _parse_system(model: str, url: str, text: str) -> Product | None:
         category="系統",
         name=_clean_markdown(name_match.group(1)),
         cpu=cpu,
-        memory=memory,
+        memory=_spec_items(memory),
         bmc=bool(re.search(r"\b(?:BMC|IPMI)\b", text, flags=re.IGNORECASE)),
         rot=bool(re.search(r"\bRoT\b|Root of Trust", text, flags=re.IGNORECASE)),
+        bios_version=None,
+        bmc_version=None,
         sources=[url],
     )
 
@@ -164,10 +173,57 @@ def _parse_motherboard(model: str, url: str, text: str) -> Product | None:
         category="主機板",
         name=_clean_markdown(title_lines[0]),
         cpu=cpu,
-        memory=memory,
+        memory=_spec_items(memory),
         bmc=bmc,
         rot=rot,
+        bios_version=None,
+        bmc_version=None,
         sources=sources,
+    )
+
+
+def _attach_firmware(
+    product: Product, product_text: str, is_motherboard: bool
+) -> Product:
+    firmware_model = product.model if is_motherboard else None
+    if not firmware_model:
+        normalized = re.sub(r"\s+", " ", product_text)
+        match = re.search(
+            r"\bMotherboard\s+(?:Super\s+)?([A-Z0-9][A-Z0-9+.-]+)",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        firmware_model = match.group(1).upper() if match else None
+    if not firmware_model:
+        return product
+
+    firmware_url = (
+        f"{OFFICIAL_BASE}/en/support/resources/downloadcenter/"
+        f"firmware/MBD-{firmware_model}/BIOS"
+    )
+    try:
+        firmware_text = _fetch_official_page(firmware_url)
+    except SourceUnavailable:
+        return product
+    if _is_missing_page(firmware_text):
+        return product
+
+    bios_match = re.search(
+        r"BIOS Revision:\s*([^\n|]+)", firmware_text, flags=re.IGNORECASE
+    )
+    bmc_match = re.search(
+        r"BMC Firmware Revision:\s*([^\n|]+)",
+        firmware_text,
+        flags=re.IGNORECASE,
+    )
+    if not bios_match and not bmc_match:
+        return product
+
+    return replace(
+        product,
+        bios_version=bios_match.group(1).strip() if bios_match else None,
+        bmc_version=bmc_match.group(1).strip() if bmc_match else None,
+        sources=[*product.sources, firmware_url],
     )
 
 
@@ -195,7 +251,11 @@ def lookup_product(raw_model: str) -> Product:
             continue
         product = parser(model, url, text)
         if product:
-            return product
+            return _attach_firmware(
+                product,
+                text,
+                is_motherboard=parser is _parse_motherboard,
+            )
 
     if source_failed:
         raise SourceUnavailable

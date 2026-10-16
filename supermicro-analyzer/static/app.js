@@ -14,6 +14,8 @@ const fields = {
   memory: document.querySelector("#memory"),
   bmc: document.querySelector("#bmc"),
   rot: document.querySelector("#rot"),
+  biosVersion: document.querySelector("#bios-version"),
+  bmcVersion: document.querySelector("#bmc-version"),
 };
 
 function setSource(url = "") {
@@ -47,9 +49,17 @@ function showProduct(product) {
   fields.model.textContent = product.model;
   fields.name.textContent = product.name;
   fields.cpu.textContent = product.cpu;
-  fields.memory.textContent = product.memory;
+  fields.memory.replaceChildren(
+    ...product.memory.map((item) => {
+      const listItem = document.createElement("li");
+      listItem.textContent = item;
+      return listItem;
+    }),
+  );
   fields.bmc.textContent = product.bmc ? "有" : "沒有";
   fields.rot.textContent = product.rot ? "有" : "沒有";
+  fields.biosVersion.textContent = product.bios_version ?? "官網未提供";
+  fields.bmcVersion.textContent = product.bmc_version ?? "官網未提供";
   status.textContent = "";
   status.classList.remove("error");
   setSource(product.sources[0]);

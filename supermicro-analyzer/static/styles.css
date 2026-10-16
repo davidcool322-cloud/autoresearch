@@ -272,7 +272,11 @@ input::placeholder {
 }
 
 .spec-card.flag {
-  grid-column: span 3;
+  grid-column: span 2;
+}
+
+.spec-card.firmware {
+  grid-column: span 2;
 }
 
 .spec-card h4 {
@@ -287,11 +291,70 @@ input::placeholder {
   line-height: 1.65;
 }
 
+.memory-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-list li {
+  position: relative;
+  padding-left: 17px;
+  color: #3e4752;
+  line-height: 1.55;
+}
+
+.memory-list li::before {
+  position: absolute;
+  top: 0.65em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+
 .spec-card .flag-value {
   color: var(--success);
   font-size: 2.2rem;
   font-weight: 850;
   line-height: 1;
+}
+
+.firmware-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.firmware-list div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.firmware-list div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.firmware-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.firmware-list dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
 }
 
 .hidden {
@@ -324,7 +387,8 @@ input::placeholder {
   }
 
   .spec-card.wide,
-  .spec-card.flag {
+  .spec-card.flag,
+  .spec-card.firmware {
     grid-column: 1 / -1;
   }
 }

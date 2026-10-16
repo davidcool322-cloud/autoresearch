@@ -7,6 +7,7 @@
 - 支援的記憶體
 - 是否有 BMC
 - 是否有 RoT
+- Supermicro 官網目前提供的最新 BIOS 與 BMC 韌體版本
 
 ## 啟動
 
