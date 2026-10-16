@@ -4,9 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import mimetypes
+import os
 import re
+import socket
+import sys
+import threading
 import webbrowser
 from dataclasses import asdict, dataclass, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -418,6 +423,39 @@ class AppHandler(BaseHTTPRequestHandler):
         print(f"{self.address_string()} - {message % args}")
 
 
+class AppServer(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second process bind the same port and steal connections.
+    allow_reuse_address = os.name != "nt"
+
+
+class DualStackServer(AppServer):
+    address_family = socket.AF_INET6
+
+    def server_bind(self) -> None:
+        with contextlib.suppress(AttributeError, OSError):
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        super().server_bind()
+
+
+def _create_servers(host: str, port: int) -> list[ThreadingHTTPServer]:
+    """Listen on IPv4 and IPv6 so http://localhost works when it resolves to ::1."""
+    if host in {"0.0.0.0", "::"}:
+        try:
+            return [DualStackServer(("::", port), AppHandler)]
+        except OSError:
+            return [AppServer(("0.0.0.0", port), AppHandler)]
+    if host in {"127.0.0.1", "localhost"}:
+        servers: list[ThreadingHTTPServer] = [AppServer(("127.0.0.1", port), AppHandler)]
+        try:
+            servers.append(DualStackServer(("::1", port), AppHandler))
+        except OSError:
+            pass
+        return servers
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    server_class = DualStackServer if family == socket.AF_INET6 else AppServer
+    return [server_class((host, port), AppHandler)]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Supermicro model analyzer.")
     parser.add_argument("--host", default="127.0.0.1")
@@ -425,25 +463,32 @@ def main() -> None:
     parser.add_argument("--no-browser", action="store_true", help="啟動後不自動開啟瀏覽器")
     args = parser.parse_args()
 
+    # Windows terminals with a non-Chinese code page would otherwise crash on print.
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError):
+            stream.reconfigure(errors="replace")
+
     try:
-        server = ThreadingHTTPServer((args.host, args.port), AppHandler)
+        servers = _create_servers(args.host, args.port)
     except OSError as error:
         print(f"無法啟動：連接埠 {args.port} 可能已被其他程式使用（{error}）。")
-        print(f"可改用其他連接埠，例如：python3 server.py --port {args.port + 1}")
+        print(f"請先關閉之前開啟的伺服器視窗，或改用其他連接埠，例如：python3 server.py --port {args.port + 1}")
         raise SystemExit(1) from error
 
-    browser_host = "127.0.0.1" if args.host in {"0.0.0.0", "127.0.0.1", "localhost"} else args.host
-    url = f"http://{browser_host}:{args.port}"
+    url = f"http://localhost:{args.port}"
     print(f"已啟動，請用瀏覽器開啟 {url}", flush=True)
     print("使用期間請保持這個視窗開啟；按 Ctrl+C 結束。", flush=True)
+    for extra in servers[1:]:
+        threading.Thread(target=extra.serve_forever, daemon=True).start()
     if not args.no_browser:
         webbrowser.open(url)
     try:
-        server.serve_forever()
+        servers[0].serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        server.server_close()
+        for server in servers:
+            server.server_close()
 
 
 if __name__ == "__main__":

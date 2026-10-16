@@ -1,9 +1,11 @@
+import socket
 import unittest
 from unittest.mock import patch
 
 from server import (
     _attach_firmware,
     _attach_motherboard_capabilities,
+    _create_servers,
     _normalize_model,
     _parse_motherboard,
     _parse_system,
@@ -180,6 +182,19 @@ Not Found
             text,
         )
         self.assertIsNone(product)
+
+
+class ServerStartupTests(unittest.TestCase):
+    def test_default_host_listens_on_ipv4_and_ipv6_loopback(self) -> None:
+        servers = _create_servers("127.0.0.1", 0)
+        try:
+            families = {server.socket.family for server in servers}
+            self.assertIn(socket.AF_INET, families)
+            if socket.has_ipv6:
+                self.assertIn(socket.AF_INET6, families)
+        finally:
+            for server in servers:
+                server.server_close()
 
 
 if __name__ == "__main__":
